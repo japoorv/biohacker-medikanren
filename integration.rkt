@@ -238,9 +238,9 @@ Add a bms node corrosponding to (A->B predicates) including n hops between A->B
           (define def  (tms-create-node bms (gensym) #:belief (interval 0 0)))
           (define A->X (hash-ref object-hash X-name def))
           (define subject-list (for/list ((x (hash-ref subject-hash X-name '()))) x))
-          (define X->B (tms-create-node bms 'X->B #:belief prior))
+          (define X->B (tms-create-node bms 'X->B #:belief (interval 0 0)))
           (justify-node 'X->B X->B subject-list prior)
-         (justify-node 'A->B A->B (list A->X X->B) prior)
+          (justify-node 'A->B A->B (list A->X X->B) prior)
          )
         )
     A->B
