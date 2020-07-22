@@ -126,6 +126,22 @@
    (tms-create-node bms (edge->bms-node-name edge) #:belief node-support)
    )
 
+
+#|
+Given (curieA curieB predicates) below function returns the bms-node A->B with belief coming from a single hop only ie curieA,curieB, relation between them 
+|#
+ (define (bms-add-node-1-hop curieA curieB predicates bms) ;; predicates a list
+   (define query (query/graph
+                   ((A curieA) (B curieB))
+                   ((A->B predicates))
+                   (A A->B B)))
+
+   (define A->B (tms-create-node bms 'A->B #:belief (interval 0 0)))
+   (define antes-list (for/list ((edge (edges/query query 'A->B))) (edge->bms-node edge bms)))
+   (define prior (interval 1 0)) ;; Suitable Prior ?
+   (justify-node (gensym) A->B antes-list prior)
+   A->B
+   )
  ;; 1 Hop + 2 Hop 
 
  (define (bms-add-node curieA curieB predicates bms) ;; predicates a list
@@ -178,11 +194,66 @@
    (displayln (getinfo A->B))
    )
 
+#|
+Add a bms node corrosponding to (A->B predicates) including n hops between A->B 
+|#
+(define (bms-add-node-n-hop curieA curieB predicates hops bms)
+    (cond
+       ((> 1 hops) (error "Hops need to be atlease 1"))
+       ((= 1 hops) (bms-add-node-1-hop curieA curieB predicates bms))
+       (else
+        (begin
+          (define prior (interval 1 0))
+          (define A->B (tms-create-node bms 'A->B #:belief (interval 0 0)))
+          (define q1
+            (query/graph
+             ((A curieA) (B curieB))
+             ((A->B predicates))
+             (A A->B B)))
+          (match-define (list lst1 lst2) (split-predicate predicates))
+          (define q2 ;; For splitting to A->X X->B
+            (query/graph
+             ((A curieA) (X #f) (B curieB))
+             ((A->X lst1) (X->B lst2))
+             (A A->X X X->B B)))
+          (define antes-lst (for/list ((edges (edges/query q1 'A->B))) (edge->bms-node edges bms)) )
+          (justify-node (gensym) A->B antes-lst prior)
+          (define object-hash (make-hash)) ;; (X_curie,list of all edges A->X)
+          (define subject-hash (make-hash)) ;; (X_curie,list of all edges X->B)
+          (for ((edge (edges/query q2 'A->X)))
+            (begin
+              (define X-name (get-representative (concept->curie (edge->object edge))))
+              (define hash-val (hash-ref object-hash X-name '()))
+              (hash-set! object-hash X-name (cons (bms-add-node-n-hop curieA X-name lst1 (- hops 1) bms) hash-val))
+              )
+            )
+          (for ((edge (edges/query q2 'X->B)))
+            (begin
+              (define X-name (get-representative (concept->curie (edge->subject edge))))
+              (define hash-val (hash-ref subject-hash X-name '()))
+              (hash-set! subject-hash X-name (cons (edge->bms-node edge bms) hash-val))
+              )
+            )
 
+    (for ((X-name (hash-keys object-hash)))
+        (begin
+         (define object-list (for/list ((x (hash-ref  object-hash X-name '()))) x)) 
+         (define subject-list (for/list ((x (hash-ref subject-hash X-name '()))) x))
+         (define A->X (tms-create-node bms (gensym) #:belief (interval 0 0)))
+         (define X->B (tms-create-node bms (gensym) #:belief (interval 0 0)))
+         (when (or (empty? object-list) (empty? subject-list)) (error (format "One list is empty.\n~a ~a ~a"  X-name object-list subject-list)))
+         (justify-node 'A->X A->X object-list prior)
+         (justify-node 'X->B X->B subject-list prior)
+         (justify-node 'A->B A->B (list A->X X->B) prior)
+         )
+        )
+    A->B
+          )
+        )
+       )
+     )
 
- #|
- 1) Recursion left 
- |#
+ 
  ;; S ---treats--->X---causes---> O
  ;;imatinib CUI:C0939537
  ;;ashthma CUI:C0004096
