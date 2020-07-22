@@ -154,7 +154,6 @@ Given (curieA curieB predicates) below function returns the bms-node A->B with b
    (define antes-list (for/list ((edge (edges/query query 'A->B))) (edge->bms-node edge bms)))
    (define prior (interval 1 0)) ;; Suitable Prior ?
    (justify-node (gensym) A->B antes-list prior)
-   (displayln (getinfo A->B))
    ;;2 HOP
     (match-define (list lst1 lst2) (split-predicate predicates))
     (define query-2hop (query/graph
@@ -224,7 +223,7 @@ Add a bms node corrosponding to (A->B predicates) including n hops between A->B
             (begin
               (define X-name (get-representative (concept->curie (edge->object edge))))
               (define hash-val (hash-ref object-hash X-name '()))
-              (hash-set! object-hash X-name (cons (bms-add-node-n-hop curieA X-name lst1 (- hops 1) bms) hash-val))
+              (when (empty? hash-val) (hash-set! object-hash X-name  (bms-add-node-n-hop curieA X-name lst1 (- hops 1) bms) ))
               )
             )
           (for ((edge (edges/query q2 'X->B)))
@@ -234,16 +233,13 @@ Add a bms node corrosponding to (A->B predicates) including n hops between A->B
               (hash-set! subject-hash X-name (cons (edge->bms-node edge bms) hash-val))
               )
             )
-
     (for ((X-name (hash-keys object-hash)))
         (begin
-         (define object-list (for/list ((x (hash-ref  object-hash X-name '()))) x)) 
-         (define subject-list (for/list ((x (hash-ref subject-hash X-name '()))) x))
-         (define A->X (tms-create-node bms (gensym) #:belief (interval 0 0)))
-         (define X->B (tms-create-node bms (gensym) #:belief (interval 0 0)))
-         (when (or (empty? object-list) (empty? subject-list)) (error (format "One list is empty.\n~a ~a ~a"  X-name object-list subject-list)))
-         (justify-node 'A->X A->X object-list prior)
-         (justify-node 'X->B X->B subject-list prior)
+          (define def  (tms-create-node bms (gensym) #:belief (interval 0 0)))
+          (define A->X (hash-ref object-hash X-name def))
+          (define subject-list (for/list ((x (hash-ref subject-hash X-name '()))) x))
+          (define X->B (tms-create-node bms 'X->B #:belief prior))
+          (justify-node 'X->B X->B subject-list prior)
          (justify-node 'A->B A->B (list A->X X->B) prior)
          )
         )
@@ -253,7 +249,12 @@ Add a bms node corrosponding to (A->B predicates) including n hops between A->B
        )
      )
 
- 
+#|
+Two version of the recursive function 
+recur(A->X), (X->B) less than actual 2-Hop
+recur(A->X),recur(X->B) more than actual 
+
+|#
  ;; S ---treats--->X---causes---> O
  ;;imatinib CUI:C0939537
  ;;ashthma CUI:C0004096
