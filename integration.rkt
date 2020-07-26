@@ -249,6 +249,10 @@ Add a bms node corrosponding to (A->B predicates) including n hops between A->B
        )
      )
 
+(define bms (create-jbms "Simple"))
+(pretty-print (time (bms-add-node-n-hop "UMLS:C0812258" "NCBIGene:7332" #f 2 bms)))
+(pretty-print (time (bms-add-node-n-hop "UMLS:C0812258" "NCBIGene:7332" #f 3 bms)))
+
 #|
 Two version of the recursive function 
 recur(A->X), (X->B) less than actual 2-Hop
@@ -258,4 +262,11 @@ recur(A->X),recur(X->B) more than actual
  ;; S ---treats--->X---causes---> O
  ;;imatinib CUI:C0939537
  ;;ashthma CUI:C0004096
- ;; eosinophilia      CUI:C0014457
+;; eosinophilia      CUI:C0014457
+#| 
+
+1) Ranking the two hops as per X's and confidence in the node
+2) Ranking A->X or X->B as per X's and confidence in the node
+3) Score((s(a),s(a^))) : maybe ((s(a)+ (1-s(a^)))/2)
+
+|#
