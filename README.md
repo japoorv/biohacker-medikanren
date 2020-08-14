@@ -8,7 +8,9 @@ Integration of BMS (https://github.com/namin/biohacker/blob/master/BPS/jtms/bms.
 
 
 
-**NOTE** : The integration requires 3 files. 1 is the query file in /mediKanren/biolink/pieces-parts/query.rkt and other are the (bms.rkt,logic.rkt) from /biohacker/BPS/jtms
+**NOTE** : The integration requires 3 files.
+
+ First is the query file in /mediKanren/biolink/pieces-parts/query.rkt and other are the (bms.rkt,logic.rkt) from /biohacker/BPS/jtms
 
 
 
