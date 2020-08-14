@@ -4,6 +4,23 @@
   (require "../biohacker/BPS/jtms/bms.rkt") ;; bms interface
   (require "../biohacker/BPS/jtms/logic.rkt") ;; bms utility
 
+;;;Usage;;;;
+#|
+1) Ranking :
+1.1) First create a jbms (Justification based Belief Maint. System)
+     (define bms (create-jbms "Simple"))
+
+1.2) (pretty-print (rank-2-hop "UMLS:C0812258" "NCBIGene:7332" #f bms))
+     (pretty-print (rank-1-hop "UMLS:C0812258" positively-regulates 'subject bms))
+
+2) Getting overall belief in a node A->B
+
+2.1) 1 Hop (bms-add-node-1-hop curieA curieB predicates bms)
+2.2) 1 Hop + 2 Hop (bms-add-node curieA curieB predicates bms)
+2.3) 1 Hop + 2 Hop .... n Hop (bms-add-node-n-hop curieA curieB predicates hops bms)
+    
+|#
+
 
   ;;;Utility;;;;
 
@@ -144,7 +161,7 @@
     (justify-node (gensym) A->B antes-list prior)
     A->B
     )
-  ;; 1 Hop + 2 Hop 
+  ;; Returns the node A->B with the belief propogated using both 1 Hop, 2 Hop
 
   (define (bms-add-node curieA curieB predicates bms) ;; predicates a list
     (define query (query/graph
@@ -196,11 +213,12 @@
     )
 
  #|
- Add a bms node corrosponding to (A->B predicates) including n hops between A->B 
+ Return a bms node corrosponding to (A->B predicates) including n hops between A->B
+The belief is a culmination of all hops from 1 to n 
  |#
  (define (bms-add-node-n-hop curieA curieB predicates hops bms)
      (cond
-        ((> 1 hops) (error "Hops need to be atlease 1"))
+        ((> 1 hops) (error "Hops need to be atleast 1"))
         ((= 1 hops) (bms-add-node-1-hop curieA curieB predicates bms))
         (else
          (begin
@@ -253,7 +271,7 @@
 
  #|
  For sorting the A->X->B paths on the basis of their support for A->B 
- For scoring the A->X->B score is used which has following signature score = interval -> number (real number in [0 1])
+ For scoring the A->X->B score is used ,which has following signature score = interval -> number (real number in [0 1])
  |#
  (define (rank-2-hop curieA curieB predicates bms)
    (match-define (list lst1 lst2) (split-predicate predicates))
@@ -300,6 +318,7 @@
    )
 
 
+;;; Gives the ranking of 1 hop from X->B or A->X by mentioning concept-type-predicate as 'subject for A->X and 'object otherwise
  (define (rank-1-hop curie predicates concept-type-provided bms)
    (define query #f) ;; The query as per the concept-type-provided
    (define symb_edge #f) ;; X->B, A->X
@@ -362,8 +381,11 @@
  ;; eosinophilia      CUI:C0014457
  |# 
 
- #|
- 1) Ranking the two hops as per X's and confidence in the node
- 2) Ranking A->X or X->B as per X's and confidence in the node
- 3) Score((s(a),s(a^))) : maybe ((s(a)+ (1-s(a^)))/2)
- |#
+
+#|
+
+Concerns: 
+2) What about upregulates and downregulates
+3) Meta-rule adjusting for feedbacks
+
+|#
