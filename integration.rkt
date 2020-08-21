@@ -27,8 +27,14 @@
   (define (getinfo . lst) ;; prints interval [s s^] for all nodes in lst
     (map tms-node-belief lst))
 
+  (define (negated-edge edge)
+    (let ((a (assoc "negated" (edge->props edge))))
+      (if a
+          (cdr a)
+          "false")))
+
   (define (negated? edge) ;; checking whether edge is negated or not
-    (define neg (string-downcase (cdr (assoc "negated" (edge->props edge)))))
+    (define neg (string-downcase (negated-edge edge)))
     (equal? neg "true")
     )
   (define (score i1) ;; given a [s(A),s(~A)] find the score for the confidence 
@@ -123,7 +129,7 @@
     (define subject-curie (get-representative (concept->curie (edge->subject edge))))
     (define object-curie (get-representative (concept->curie (edge->object edge))))
     (define predicate (cdr (edge->pred edge)))
-    (define negated (cdr (assoc "negated" (edge->props edge))))
+    (define negated (negated-edge edge))
     (string-append negated "-" subject-curie "-" predicate "-" object-curie)
     )
 
